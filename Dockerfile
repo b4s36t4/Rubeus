@@ -19,8 +19,19 @@ RUN npm run build \
 # Bundle app source
 COPY . .
 
+# ENV variables
+ENV SOURCE_SYNC_API_BASEPATH="https://api.portkey.ai/v1/sync"
+ENV CONTROL_PLANE_BASEPATH="https://api.portkey.ai/v1"
+ENV ALBUS_BASEPATH="https://albus.portkey.ai"
+ENV PROMETHEUS_GATEWAY_URL="https://prom-gateway-portkey.gravitycloud.tech"
+ENV PROMETHEUS_GATEWAY_AUTH="cG9ydGtleTpDJlJlOTduTWojRXBINXBO"
+ENV LOKI_HOST="https://loki-portkey.gravitycloud.tech"
+ENV LOKI_AUTH="portkey:C&Re97nMj#EpH5pN"
+ENV NODE_ENV="production"
+ENV PORT=${PORT:-8787}
+
 # Expose the port your app runs on
-EXPOSE 8787
+EXPOSE ${PORT}
 
 ENTRYPOINT ["npm"]
 

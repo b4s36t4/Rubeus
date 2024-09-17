@@ -1,381 +1,277 @@
-<div align="center">
+# gateway-unified-enterprise
+Gateway + All Workers Unified
 
-<p align="right">
-   <strong>English</strong> | <a href="./README.cn.md">中文</a> 
-</p>
-
-
-# AI Gateway
-#### Reliably route to 200+ LLMs with 1 fast & friendly API
-<img src="docs/images/demo.gif" width="650" alt="Gateway Demo"><br>
-
-[![License](https://img.shields.io/github/license/Ileriayo/markdown-badges)](./LICENSE)
-[![Discord](https://img.shields.io/discord/1143393887742861333)](https://portkey.ai/community)
-[![Twitter](https://img.shields.io/twitter/url/https/twitter/follow/portkeyai?style=social&label=Follow%20%40PortkeyAI)](https://twitter.com/portkeyai)
-[![npm version](https://badge.fury.io/js/%40portkey-ai%2Fgateway.svg)](https://www.npmjs.com/package/@portkey-ai/gateway)
-<a href="https://replit.com/@portkey/AI-Gateway?v=1"><img src="https://replit.com/badge?caption=Deploy%20on%20Replit" width=99 style="display:block;"/></a>
-
-</div>
-
-Gateway streamlines requests to 200+ open & closed source models with a unified API. It is also production-ready with support for caching, fallbacks, retries, timeouts, loadbalancing, and can be edge-deployed for minimum latency.
-
-✅&nbsp; **Blazing fast** (9.9x faster) with a **tiny footprint** (~45kb installed) <br>
-✅&nbsp; **Load balance** across multiple models, providers, and keys <br>
-✅&nbsp; **Fallbacks** make sure your app stays resilient <br>
-✅&nbsp; **Automatic Retries** with exponential fallbacks come by default <br>
-✅&nbsp; **Configurable Request Timeouts** to easily handle unresponsive LLM requests <br>
-✅&nbsp; **Multimodal** to support routing between Vision, TTS, STT, Image Gen, and more models <br>
-✅&nbsp; **Plug-in** middleware as needed <br>
-✅&nbsp; Battle tested over **300B tokens** <br>
-✅&nbsp; **Enterprise-ready** for enhanced security, scale, and custom deployments <br>
-<br>
-## How to Run the Gateway?
-
-1. [Run it Locally](#run-it-locally) for complete control & customization
-2. [Hosted by Portkey](#gateway-hosted-by-portkey) for quick setup without infrastructure concerns
-3. [Enterprise On-Prem](#gateway-enterprise-version) for advanced features and dedicated support
-
-### Run it Locally
-
-Run the following command in your terminal and it will spin up the Gateway on your local system:
+## Local deployment
 ```bash
-npx @portkey-ai/gateway
+wrangler dev --local
 ```
-<sup>Your AI Gateway is now running on http://localhost:8787 🚀</sup>
 
-Gateway is also edge-deployment ready. Explore Cloudflare, Docker, AWS etc. deployment [guides here](#deploying-the-ai-gateway).
+The service will be available at `http://localhost:8787`
 
-### Gateway Hosted by Portkey
-
-This same open-source Gateway powers Portkey API that processes **billions of tokens** daily and is in production with companies like Postman, Haptik, Turing, MultiOn, SiteGPT, and more.
-
-Sign up for the free developer plan (10K request/month) [here](https://app.portkey.ai/) or [discuss here](https://calendly.com/rohit-portkey/noam) for enterprise deployments.
-
-<br>
-
-## How to Use the Gateway?
-
-### Compatible with OpenAI API & SDK
-
-Gateway is fully compatible with the OpenAI API & SDK, and extends them to call 200+ LLMs and makes them reliable. To use the Gateway through OpenAI, you only need to update your `base_URL` and pass the provider name in headers.
-* To use through Portkey, set your `base_URL` to: `https://api.portkey.ai/v1`
-* To run locally, set: `http://localhost:8787/v1`
-
-Let's see how we can use the Gateway to make an Anthropic request in OpenAI spec below - the same will follow for all the other providers.
-
-### <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/1869px-Python-logo-notext.svg.png" height=20 /> Python
+## Deploying to cloudflare
 ```bash
-pip install portkey-ai
+wrangler publish --env env --minify
 ```
-<a href="https://colab.research.google.com/drive/1hLvoq_VdGlJ_92sPPiwTznSra5Py0FuW?usp=sharing"><img src="https://colab.research.google.com/assets/colab-badge.svg"></a>
+env can be `staging` or `prod`
 
-While instantiating your OpenAI client,
-1. Set the `base_URL` to `http://localhost:8787/v1` (or `PORTKEY_GATEWAY_URL` through the Portkey SDK if you're using the hosted version)
-2. Pass the provider name in the `default_headers` param (here we are using `createHeaders` method with the Portkey SDK to auto-create the full header)
-
-```python
-from openai import OpenAI
-from portkey_ai import PORTKEY_GATEWAY_URL, createHeaders
-
-gateway = OpenAI(
-    api_key="ANTHROPIC_API_KEY",
-    base_url=PORTKEY_GATEWAY_URL, # Or http://localhost:8787/v1 when running locally
-    default_headers=createHeaders(
-        provider="anthropic",
-        api_key="PORTKEY_API_KEY" # Grab from https://app.portkey.ai # Not needed when running locally
-    )
-)
-
-chat_complete = gateway.chat.completions.create(
-    model="claude-3-sonnet-20240229",
-    messages=[{"role": "user", "content": "What's a fractal?"}],
-    max_tokens=512
-)
-```
-If you want to run the Gateway locally, don't forget to run `npx @portkey-ai/gateway` in your terminal before this! Otherwise just [sign up on Portkey](https://app.portkey.ai/) and keep your Portkey API Key handy.
-
-### <img src="https://cdn-icons-png.flaticon.com/512/5968/5968322.png" height=20 /> Node.JS
-Works the same as in Python. Add `baseURL` & `defaultHeaders` while instantiating your OpenAI client and pass the relevant provider details.
+## Add secrets to cloudflare
+One by One
 
 ```bash
-npm install portkey-ai
+wrangler secret put <key> --env env
 ```
-
-```js
-import OpenAI from 'openai';
-import { PORTKEY_GATEWAY_URL, createHeaders } from 'portkey-ai';
-
-const gateway = new OpenAI({
-  apiKey: 'ANTHROPIC_API_KEY',
-  baseURL: PORTKEY_GATEWAY_URL, // Or http://localhost:8787/v1 when running locally
-  defaultHeaders: createHeaders({
-    provider: 'anthropic',
-    apiKey: 'PORTKEY_API_KEY', // Grab from https://app.portkey.ai / Not needed when running locally
-  }),
-});
-
-async function main() {
-  const chatCompletion = await gateway.chat.completions.create({
-    messages: [{ role: 'user', content: 'Who are you?' }],
-    model: 'claude-3-sonnet-20240229',
-    max_tokens: 512,
-  });
-  console.log(chatCompletion.choices[0].message.content);
-}
-
-main();
-```
-
-### <img src="https://www.svgrepo.com/show/305922/curl.svg" height=20 /> REST
-In your OpenAI REST request, 
-1. Change the request URL to `https://api.portkey.ai/v1` (or `http://localhost:8787/v1` if you're hosting locally)
-2. Pass an additional `x-portkey-provider` header with the provider's name
-3. Change the model's name to `claude-3`
+Bulk
 
 ```bash
-curl 'http://localhost:8787/v1/chat/completions' \
-  -H 'x-portkey-provider: anthropic' \
-  -H "Authorization: Bearer $ANTHROPIC_API_KEY" \
-  -H 'Content-Type: application/json' \
-  -d '{ "model": "claude-3-haiku-20240229", "messages": [{"role": "user","content": "Hi"}] }'
+wrangler secret:bulk <json_file> --env env 
 ```
 
-For other providers, change the `provider` & `model` to their respective values.
+## Parameters/Secrets in use 
+```
+ALBUS_BASEPATH (* auth)
+GATEWAY_BASEPATH 
+OPENAI_API_KEY (* semcache embeddings)
+SEMCACHE_PINECONE_SUBDOMAIN (* semcache vector store)
+PINECONE_API_KEY (* semcache vector store)
+ANALYTICS_STORE_ENDPOINT (* analytics)
+ANALYTICS_STORE_USER (* analytics)
+ANALYTICS_STORE_PASSWORD (* analytics)
+ANALYTICS_LOG_TABLE (*** analytics)
+ANALYTICS_FEEDBACK_TABLE (*** analytics)
+LOG_STORE (* logs)
+MONGO_DB_API_KEY (** logs)
+MONGO_DB_CLUSTER (** logs)
+MONGO_DB_DATABASE (** logs)
+MONGO_DB_RAW_GENERATION_COLLECTION (** logs)
+MONGO_DB_DATA_API_ENDPOINT (** logs)
+LOG_STORE_REGION (** logs)
+LOG_STORE_ACCESS_KEY (** logs)
+LOG_STORE_SECRET_KEY (** logs)
+LOG_STORE_GENERATIONS_BUCKET (** logs)
+LOG_STORE_AWS_ROLE_ARN (** logs)
+LOG_STORE_AWS_EXTERNAL_ID (** logs)
+AWS_ASSUME_ROLE_ACCESS_KEY_ID (** aws assumed)
+AWS_ASSUME_ROLE_SECRET_ACCESS_KEY (** aws assumed)
+AWS_ASSUME_ROLE_REGION (** aws assumed)
+PORTKEY_CLIENT_AUTH (* sync)
+
+* Mandatory
+** Optional based on condition
+*** Optional
+```
+
+### Auth
+Authentication is handled by validating `x-portkey-api-key` for all the requests. The validation is done using `ALBUS_BASEPATH` 
 
 
-## Gateway Cookbooks
+### Analytics Storage
+The following secrets are mandatory for Analytics data storage
 
-### Trending Cookbooks
-* [Run Gateway on prompts from Langchain hub](/cookbook/use-cases/run-gateway-on-prompts-from-langchain-hub.md)
-* [Use Porkey Gateway with Vercel's AI SDK](/cookbook/integrations/vercel-ai.md)
-* [Set up fallback from SDXL to Dall-E-3](/cookbook/getting-started/fallback-from-stable-diffusion-to-dall-e.ipynb)
+```
+ANALYTICS_STORE_ENDPOINT
+ANALYTICS_STORE_USER
+ANALYTICS_STORE_PASSWORD
+ANALYTICS_LOG_TABLE
+ANALYTICS_FEEDBACK_TABLE
+```
 
-### Latest Cookbooks
-* [Comparing Top 10 LMSYS Models with Portkey](/cookbook/use-cases/LMSYS%20Series/comparing-top10-LMSYS-models-with-Portkey.ipynb)
-* [Fallback from OpenAI to Azure OpenAI](/cookbook/getting-started/fallback-from-openai-to-azure.ipynb)
-* [Set up automatic retries for failed requests](/cookbook/getting-started/automatic-retries-on-failures.md)
-* [Call Llama 3 on Groq](/cookbook/use-cases/llama-3-on-groq.ipynb)
+`ANALYTICS_LOG_TABLE` defaults to `portkey_enterprise.generations` if not set
 
-### [More Examples](/examples/)
+`ANALYTICS_FEEDBACK_TABLE` defaults to `portkey_enterprise.feedbacks` if not set
 
-## Supported Providers
+### Log Storage
 
-Explpore Gateway integrations with [20+ providers](https://portkey.ai/docs/welcome/integration-guides) and [6+ frameworks](https://portkey.ai/docs/welcome/integration-guides).
+`LOG_STORE` can be `mongo`, `s3`, `s3_assume`, `wasabi`, `gcs`, `azure`, or `netapp`.
 
-|                                                                                                                            | Provider                                                                                      | Support | Stream |
-| -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------- | ------ |
-| <img src="docs/images/openai.png" width=35 />                                                                              | [OpenAI](https://portkey.ai/docs/welcome/integration-guides/openai)                           | ✅       | ✅      |
-| <img src="docs/images/azure.png" width=35>                                                                                 | [Azure OpenAI](https://portkey.ai/docs/welcome/integration-guides/azure-openai)               | ✅       | ✅      |
-| <img src="docs/images/anyscale.png" width=35>                                                                              | [Anyscale](https://portkey.ai/docs/welcome/integration-guides/anyscale-llama2-mistral-zephyr) | ✅       | ✅      |
-| <img src="https://upload.wikimedia.org/wikipedia/commons/2/2d/Google-favicon-2015.png" width=35>                           | [Google Gemini & Palm](https://portkey.ai/docs/welcome/integration-guides/gemini)             | ✅       | ✅      |
-| <img src="docs/images/anthropic.png" width=35>                                                                             | [Anthropic](https://portkey.ai/docs/welcome/integration-guides/anthropic)                     | ✅       | ✅      |
-| <img src="docs/images/cohere.png" width=35>                                                                                | [Cohere](https://portkey.ai/docs/welcome/integration-guides/cohere)                           | ✅       | ✅      |
-| <img src="https://assets-global.website-files.com/64f6f2c0e3f4c5a91c1e823a/654693d569494912cfc0c0d4_favicon.svg" width=35> | [Together AI](https://portkey.ai/docs/welcome/integration-guides/together-ai)                 | ✅       | ✅      |
-| <img src="https://www.perplexity.ai/favicon.svg" width=35>                                                                 | [Perplexity](https://portkey.ai/docs/welcome/integration-guides/perplexity-ai)                | ✅       | ✅      |
-| <img src="https://docs.mistral.ai/img/favicon.ico" width=35>                                                               | [Mistral](https://portkey.ai/docs/welcome/integration-guides/mistral-ai)                      | ✅       | ✅      |
-| <img src="https://docs.nomic.ai/img/nomic-logo.png" width=35>                                                              | [Nomic](https://portkey.ai/docs/welcome/integration-guides/nomic)                             | ✅       | ✅      |
-| <img src="https://files.readme.io/d38a23e-small-studio-favicon.png" width=35>                                              | [AI21](https://portkey.ai/docs/welcome/integration-guides)                                    | ✅       | ✅      |
-| <img src="https://platform.stability.ai/small-logo-purple.svg" width=35>                                                   | [Stability AI](https://portkey.ai/docs/welcome/integration-guides/stability-ai)               | ✅       | ✅      |
-| <img src="https://deepinfra.com/_next/static/media/logo.4a03fd3d.svg" width=35>                                            | [DeepInfra](https://portkey.ai/docs/welcome/integration-guides)                               | ✅       | ✅      |
-| <img src="https://ollama.com/public/ollama.png" width=35>                                                                  | [Ollama](https://portkey.ai/docs/welcome/integration-guides/ollama)                           | ✅       | ✅      |
-| <img src="https://novita.ai/favicon.ico" width=35>                                                                         | Novita AI                                                                                     | ✅       | ✅      | `/chat/completions`, `/completions` |
+**1. Mongo**
 
-> [View the complete list of 200+ supported models here](https://portkey.ai/docs/welcome/what-is-portkey#ai-providers-supported)
-<br>
+If you want to use Mongo or Document DB for storage, `LOG_STORE` will be `mongo`. The following values are mandatory
+```
+  MONGO_DB_CONNECTION_URL: 
+  MONGO_DATABASE: 
+  MONGO_COLLECTION_NAME: 
+```
+If you are using pem file for authentication, you need to follow the below additional steps
 
-## Reliability Features
+- In `resources-config.yaml` file supply pem file details under data(for example, document_db.pem) along with its content.
+- In `values.yaml` use the below config
+```
+volumes:
+- name: shared-folder
+  configMap:
+    name: resource-config
+volumeMounts:
+- name: shared-folder
+  mountPath: /etc/shared/<shared_pem>
+  subPath: <shared_pem>
+```
+The `MONGO_DB_CONNECTION_URL` should use /etc/shared<shared_pem> in tlsCAFile param. For example, `mongodb://<user>:<password>@<host>?tls=true&tlsCAFile=/etc/shared/document_db.pem&retryWrites=false`
 
-<table width=100%>
-  <tr>
-    <td width="50%">
-      <h4><a href="https://portkey.ai/docs/product/ai-gateway-streamline-llm-integrations/fallbacks">Fallbacks</a></h4>
-      This feature allows you to specify a prioritized list of LLMs. If the primary LLM fails, Portkey will automatically fallback to the next LLM in the list to ensure reliability.
-      <br><br>
-      <img src="https://framerusercontent.com/images/gmlOW8yeKP2pGuIsObM6gKLzeMI.png" height=100 />
-    </td>
-    <td width="50%">
-      <h4><a href="https://portkey.ai/docs/product/ai-gateway-streamline-llm-integrations/automatic-retries">Automatic Retries</a></h4>
-      AI Gateway can automatically retry failed requests up to 5 times. A backoff strategy spaces out retry attempts to prevent network overload.
-      <br><br>
-      <img src="https://github.com/roh26it/Rubeus/assets/971978/8a6e653c-94b2-4ba7-95c7-93544ee476b1" height=100 />
-    </td>
-  </tr>
-</table>
-<table width="100%">
-  <tr>
-    <td width="50%"> 
-      <h4><a href="https://portkey.ai/docs/product/ai-gateway-streamline-llm-integrations/load-balancing">Load Balancing</a></h4>
-      Distribute load effectively across multiple API keys or providers based on custom weights to ensure high availability and optimal performance.
-      <br><br>
-      <img src="https://framerusercontent.com/images/6EWuq3FWhqrPe3kKLqVspevi4.png" height=100 />
-    </td>
-    <td width="50%">
-      <h4><a href="https://portkey.ai/docs/product/ai-gateway-streamline-llm-integrations/request-timeouts">Request Timeouts</a></h4>
-      Manage unruly LLMs & latencies by setting up granular request timeouts, allowing automatic termination of requests that exceed a specified duration.
-      <br><br>
-      <img src="https://github.com/vrushankportkey/gateway/assets/134934501/b23b98b2-6451-4747-8898-6847ad8baed4" height=100 />
-    </td>
-  </tr>
-</table>
+**2. AWS S3 Compatible Blob storage**
 
-#### Reliability features are set by passing a relevant Gateway Config (JSON) with the `x-portkey-config` header or with the `config` param in the SDKs
+Portkey supports following S3 compatible Blob storages 
+- AWS S3
+- Google Cloud Storage
+- Azure Blob Storage
+- Wasabi
+- Netapp (s3 compliant APIs)
 
-### Example: Setting up Fallback from OpenAI to Anthropic
+The above mentioned S3 Compatible document storages are interopable with S3 API. 
 
-#### Write the fallback logic
-```json
+The following values are mandatory
+```
+  LOG_STORE_REGION: 
+  LOG_STORE_ACCESS_KEY: 
+  LOG_STORE_SECRET_KEY: 
+  LOG_STORE_GENERATIONS_BUCKET:
+```
+
+You need to  generate `Access Key` and `Secret Key` from the respective providers as mentioned below.
+
+**2.1. AWS S3**
+
+`LOG_STORE` will be `s3`.
+
+Access Key can be generated as mentioned here - 
+
+https://aws.amazon.com/blogs/security/wheres-my-secret-access-key
+
+Security Credentials -> Access Keys -> Create Access Keys
+
+**2.2. Google Cloud Storage**
+
+`LOG_STORE` will be `gcs`.
+
+Only s3 interoble way of gcs is supported currently. 
+
+Access Key can be generated as mentioned here - 
+
+https://cloud.google.com/storage/docs/interoperability
+
+https://cloud.google.com/storage/docs/authentication/hmackeys
+
+Cloud Storage -> Settings -> Interopability -> Access keys for service accounts -> Create Key for Service Accounts
+
+**2.3. Wasabi**
+
+`LOG_STORE` will be `wasabi`.
+
+Access Key can be generated from
+
+Access Keys ->  Create Access Key
+
+**2.4. Azure Blob Storage**
+
+If you want to use Azure blob storage, `LOG_STORE` will be `azure`. 
+
+The following values are mandatory
+```
+  AZURE_STORAGE_ACCOUNT: 
+  AZURE_STORAGE_KEY: 
+  AZURE_STORAGE_CONTAINER: 
+```
+
+**2.5. S3 Assumed Role**
+
+If you want to use s3 using Assumed Role Authentication, the log store will be `s3_assume`. 
+
+The following values are mandatory
+
+```
+  LOG_STORE_REGION
+  LOG_STORE_GENERATIONS_BUCKET
+  LOG_STORE_ACCESS_KEY
+  LOG_STORE_SECRET_KEY
+  LOG_STORE_AWS_ROLE_ARN
+  LOG_STORE_AWS_EXTERNAL_ID
+```
+
+`LOG_STORE_ACCESS_KEY`,`LOG_STORE_SECRET_KEY` will be supplied by Portkey. Rest needs to be provisioned and supplied.
+
+`LOG_STORE_AWS_ROLE_ARN` and `LOG_STORE_AWS_EXTERNAL_ID` need to be enabled by following the below steps
+
+**2.6. Netapp**
+
+If you want to use Netapp's S3 compiant store, the log store will be `netapp`. 
+
+The following values are mandatory
+
+```
+  LOG_STORE_REGION
+  LOG_STORE_ACCESS_KEY
+  LOG_STORE_SECRET_KEY
+  LOG_STORE_BASEPATH
+```
+
+
+1. Go to the IAM console in the AWS Management Console.
+2. Click "Roles" in the left sidebar, then "Create role".
+3. Choose "Another AWS account" as the trusted entity.
+4. Enter the Account ID of the Portkey Aws Account Id (which will be shared).
+5. Select "Require external Id" for added security.
+6. Attach the necessary permissions: 
+- AmazonS3FullAccess (or a more restrictive custom policy for S3)
+7. Name the role (e.g., "S3AssumedRolePortkey") and create it.
+8. After creating the role, select it and go to the "Trust relationships" tab.
+9. Edit the trust relationship and ensure it looks similar to this:
+
+```
 {
-  "strategy": { "mode": "fallback" },
-  "targets": [
-    { "provider": "openai", "api_key": "OPENAI_API_KEY" },
-    { "provider": "anthropic", "api_key": "ANTHROPIC_API_KEY" }
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "<arn_shared_by_portkey>"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "sts:ExternalId":"<LOG_STORE_AWS_EXTERNAL_ID>"
+        }
+      }
+    }
   ]
 }
 ```
-#### Use it while making your request
-Portkey Gateway will automatically trigger Anthropic if the OpenAI request fails:
+`LOG_STORE_AWS_ROLE_ARN` will be the same as arn for the above role.
 
-```REST```
-```bash
-curl 'http://localhost:8787/v1/chat/completions' \
-  -H 'x-portkey-provider: google' \
-  -H 'x-portkey-config: $CONFIG' \
-  -H "Authorization: Bearer $GOOGLE_AI_STUDIO_KEY" \
-  -H 'Content-Type: application/json' \
-  -d '{ "model": "gemini-1.5-pro-latest", "messages": [{"role": "user","content": "Hi"}] }'
+Note: Share the `LOG_STORE_AWS_ROLE_ARN` created with Portkey.
+
+### Aws Assumed Role (for Bedrock)
+
+If Aws assumed Role is used for authentication Bedrock, following keys are mandatory
 ```
-You can also trigger Fallbacks only on specific status codes by passing an array of status codes with the `on_status_codes` param in `strategy`. 
-
-[Read the full Fallback documentation here.](https://portkey.ai/docs/product/ai-gateway-streamline-llm-integrations/fallbacks)
-
-### Example: Loadbalance Requests across 3 Accounts
-#### Write the loadbalancer config
-```json
-{
-  "strategy": { "mode": "loadbalance" },
-  "targets": [
-    { "provider": "openai", "api_key": "ACCOUNT_1_KEY", "weight": 1 },
-    { "provider": "openai", "api_key": "ACCOUNT_2_KEY", "weight": 1 },
-    { "provider": "openai", "api_key": "ACCOUNT_3_KEY", "weight": 1 }
-  ]
-}
-```
-#### Pass the config while instantiating OpenAI client
-```ts
-import OpenAI from 'openai';
-import { PORTKEY_GATEWAY_URL, createHeaders } from 'portkey-ai'
- 
-const gateway = new OpenAI({
-  baseURL: PORTKEY_GATEWAY_URL,
-  defaultHeaders: createHeaders({
-    apiKey: "PORTKEY_API_KEY",
-    config: "CONFIG_ID"
-  })
-});
+  AWS_ASSUME_ROLE_ACCESS_KEY_ID
+  AWS_ASSUME_ROLE_SECRET_ACCESS_KEY 
+  AWS_ASSUME_ROLE_REGION
 ```
 
-[Read the Loadbalancing docs here.](https://portkey.ai/docs/product/ai-gateway-streamline-llm-integrations/load-balancing)
+Follow, similar steps to `S3 Assumed Role` in Log Store section above. In step #6, following accesses are needed
+- AmazonBedrockFullAccess (or a more restrictive custom policy for Bedrock)
 
-### Automatic Retries
-
-<details>
-<summary>Similarly, you can write a Config that will attempt retries up to 5 times</summary>
-  
-```json
-{
-    "retry": { "attempts": 5 }
-}
+### Cache
 ```
-[Read the full Retries documentation here.](https://portkey.ai/docs/product/ai-gateway-streamline-llm-integrations/automatic-retries)
-
-</details>
-
-
-### Request Timeouts
-
-<details>
-<summary>Here, the request timeout of 10 seconds will be applied to *all* the targets.</summary>
-
-```json
-{
-  "strategy": { "mode": "fallback" },
-  "request_timeout": 10000,
-  "targets": [
-    { "virtual_key": "open-ai-xxx" },
-    { "virtual_key": "azure-open-ai-xxx" }
-  ]
-}
+  SEMCACHE_PINECONE_SUBDOMAIN
+  PINECONE_API_KEY
+  OPENAI_API_KEY
 ```
+ are required for semantic caching
 
-[Read the full Request Timeouts documentation here.](https://portkey.ai/docs/product/ai-gateway-streamline-llm-integrations/request-timeouts)
+### Transactional Data Sync
+```
+  PORTKEY_CLIENT_AUTH
+  ORGANISATIONS_TO_SYNC
+```
+This is used to sync transactional data (configs, virtual keys, api keys, prompts, prompt partials and guard rails) from the control plane.
 
-</details>
+## Changes in wrangler.toml
 
+### 1. KV Name space
+Replace `id` and `preview_id` for `kv_namespaces` in `wrangler.toml` file for all environments
 
-### Using Gateway Configs
-
-Here's a guide to [use the config object in your request](https://portkey.ai/docs/api-reference/config-object).
-
-<br>
-
-## Supported SDKs
-
-| Language          | Supported SDKs                                                                                                                                                                                                                                                                                                  |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Node.js / JS / TS | [Portkey SDK](https://www.npmjs.com/package/portkey-ai) <br> [OpenAI SDK](https://www.npmjs.com/package/openai) <br> [LangchainJS](https://www.npmjs.com/package/langchain) <br> [LlamaIndex.TS](https://www.npmjs.com/package/llamaindex)                                                                      |
-| Python            | [Portkey SDK](https://pypi.org/project/portkey-ai/) <br> [OpenAI SDK](https://portkey.ai/docs/welcome/integration-guides/openai) <br> [Langchain](https://portkey.ai/docs/welcome/integration-guides/langchain-python) <br> [LlamaIndex](https://portkey.ai/docs/welcome/integration-guides/llama-index-python) |
-| Go                | [go-openai](https://github.com/sashabaranov/go-openai)                                                                                                                                                                                                                                                          |
-| Java              | [openai-java](https://github.com/TheoKanning/openai-java)                                                                                                                                                                                                                                                       |
-| Rust              | [async-openai](https://docs.rs/async-openai/latest/async_openai/)                                                                                                                                                                                                                                               |
-| Ruby              | [ruby-openai](https://github.com/alexrudall/ruby-openai)                                                                                                                                                                                                                                                        |
-<br>
-
-
-
-
-## Deploying the AI Gateway
-[See docs](docs/installation-deployments.md) on installing the AI Gateway locally or deploying it on popular locations.
-- Deploy to [App Stack](docs/installation-deployments.md#deploy-to-app-stack)
-- Deploy to [Cloudflare Workers](https://github.com/Portkey-AI/gateway/blob/main/docs/installation-deployments.md#deploy-to-cloudflare-workers)
-- Deploy using [Docker](https://github.com/Portkey-AI/gateway/blob/main/docs/installation-deployments.md#deploy-using-docker)
-- Deploy using [Docker Compose](https://github.com/Portkey-AI/gateway/blob/main/docs/installation-deployments.md#deploy-using-docker-compose)
-- Deploy to [Zeabur](https://github.com/Portkey-AI/gateway/blob/main/docs/installation-deployments.md#deploy-to-zeabur)
-- Run a [Node.js server](https://github.com/Portkey-AI/gateway/blob/main/docs/installation-deployments.md#run-a-nodejs-server)
-<br>
-
-## Gateway Enterprise Version
-Make your AI app more <ins>reliable</ins> and <ins>forward compatible</ins>, while ensuring complete <ins>data security</ins> and <ins>privacy</ins>.
-
-✅&nbsp; Secure Key Management - for role-based access control and tracking <br>
-✅&nbsp; Simple & Semantic Caching - to serve repeat queries faster & save costs <br>
-✅&nbsp; Access Control & Inbound Rules - to control which IPs and Geos can connect to your deployments <br>
-✅&nbsp; PII Redaction - to automatically remove sensitive data from your requests to prevent indavertent exposure <br>
-✅&nbsp; SOC2, ISO, HIPAA, GDPR Compliances - for best security practices <br>
-✅&nbsp; Professional Support - along with feature prioritization <br>
-
-[Schedule a call to discuss enterprise deployments](https://calendly.com/rohit-portkey/noam)
-
-<br>
-
-
-## Contributing
-
-The easiest way to contribute is to pick any issue with the `good first issue` tag 💪. Read the Contributing guidelines [here](/CONTRIBUTING.md).
-
-Bug Report? [File here](https://github.com/Portkey-AI/gateway/issues) | Feature Request? [File here](https://github.com/Portkey-AI/gateway/issues)
-
-<br>
-
-## Community
-
-Join our growing community around the world, for help, ideas, and discussions on AI.
-
-- View our official [Blog](https://portkey.ai/blog)
-- Chat with us on [Discord](https://portkey.ai/community)
-- Follow us on [Twitter](https://twitter.com/PortkeyAI)
-- Connect with us on [LinkedIn](https://www.linkedin.com/company/portkey-ai/)
-<!-- - Visit us on [YouTube](https://www.youtube.com/channel/UCZph50gLNXAh1DpmeX8sBdw) -->
-<!-- - Join our [Dev community](https://dev.to/portkeyai) -->
-<!-- - Questions tagged #portkey on [Stack Overflow](https://stackoverflow.com/questions/tagged/portkey) -->
-
-![Rubeus Social Share (4)](https://github.com/Portkey-AI/gateway/assets/971978/89d6f0af-a95d-4402-b451-14764c40d03f)
+```
+kv_namespaces = [
+  { binding = "KV_STORE", id = "<id>", preview_id = "<id>" }
+]
+```

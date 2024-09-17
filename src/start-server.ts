@@ -8,7 +8,11 @@ import app from './index';
 const defaultPort = 8787;
 const args = process.argv.slice(2);
 const portArg = args.find((arg) => arg.startsWith('--port='));
-const port = portArg ? parseInt(portArg.split('=')[1]) : defaultPort;
+const port = process.env.PORT
+  ? Number(process.env.PORT)
+  : portArg
+    ? parseInt(portArg.split('=')[1])
+    : defaultPort;
 
 serve({
   fetch: app.fetch,

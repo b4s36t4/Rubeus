@@ -5,7 +5,7 @@ import {
   GOOGLE_VERTEX_AI,
   PERPLEXITY_AI,
   DEEPINFRA,
-  OLLAMA,
+  SAMBANOVA,
 } from './globals';
 import { Params } from './types/requestBody';
 
@@ -27,7 +27,11 @@ export const getStreamModeSplitPattern = (
     splitPattern = '\r\n';
   }
 
-  if (proxyProvider === GOOGLE_VERTEX_AI) {
+  // In Vertex Anthropic and LLama have \n\n as the pattern only Gemini has \r\n\r\n
+  if (
+    proxyProvider === GOOGLE_VERTEX_AI &&
+    requestURL.includes('/publishers/google')
+  ) {
     splitPattern = '\r\n\r\n';
   }
 
@@ -37,6 +41,10 @@ export const getStreamModeSplitPattern = (
 
   if (proxyProvider === DEEPINFRA) {
     splitPattern = '\r\n\r\n';
+  }
+
+  if (proxyProvider === SAMBANOVA) {
+    splitPattern = '\n';
   }
 
   return splitPattern;

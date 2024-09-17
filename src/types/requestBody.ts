@@ -1,3 +1,5 @@
+import { HookObject } from '../middlewares/hooks/types';
+
 /**
  * Settings for retrying requests.
  * @interface
@@ -14,9 +16,23 @@ interface CacheSettings {
   maxAge?: number;
 }
 
+export enum StrategyModes {
+  LOADBALANCE = 'loadbalance',
+  FALLBACK = 'fallback',
+  SINGLE = 'single',
+  CONDITIONAL = 'conditional',
+}
+
 interface Strategy {
-  mode: string;
+  mode: StrategyModes;
   onStatusCodes?: Array<number>;
+  conditions?: {
+    query: {
+      [key: string]: any;
+    };
+    then: string;
+  }[];
+  default?: string;
 }
 
 /**
@@ -43,6 +59,12 @@ export interface Options {
   deploymentId?: string;
   apiVersion?: string;
   adAuth?: string;
+  azureAuthMode?: string;
+  azureEntraClientId?: string;
+  azureEntraClientSecret?: string;
+  azureEntraTenantId?: string;
+  azureAdToken?: string;
+  azureModelName?: string;
   /** Workers AI specific */
   workersAiAccountId?: string;
   /** The parameter to set custom base url */
@@ -59,14 +81,36 @@ export interface Options {
   awsAccessKeyId?: string;
   awsSessionToken?: string;
   awsRegion?: string;
+  awsAuthType?: string;
+  awsRoleArn?: string;
+  awsExternalId?: string;
 
+  /** Hugging Face specific */
+  huggingfaceBaseUrl?: string;
   /** Google Vertex AI specific */
   vertexRegion?: string;
   vertexProjectId?: string;
+  vertexServiceAccountJson?: Record<string, any>;
 
+  afterRequestHooks?: HookObject[];
+  beforeRequestHooks?: HookObject[];
   /** OpenAI specific */
   openaiProject?: string;
   openaiOrganization?: string;
+
+  /** Azure Inference Specific */
+  azureRegion?: string;
+  azureDeploymentName?: string;
+  azureDeploymentType?: 'managed' | 'serverless';
+  azureEndpointName?: string;
+  azureApiVersion?: string;
+
+  /** The parameter to determine if extra non-openai compliant fields should be returned in response */
+  strictOpenAiCompliance?: boolean;
+
+  /** Anthropic specific headers */
+  anthropicBeta?: string;
+  anthropicVersion?: string;
 }
 
 /**
@@ -74,6 +118,7 @@ export interface Options {
  * @interface
  */
 export interface Targets {
+  name?: string;
   strategy?: Strategy;
   /** The name of the provider. */
   provider?: string | undefined;
@@ -94,6 +139,11 @@ export interface Targets {
   deploymentId?: string;
   apiVersion?: string;
   adAuth?: string;
+  azureAuthMode?: string;
+  azureEntraClientId?: string;
+  azureEntraClientSecret?: string;
+  azureEntraTenantId?: string;
+  azureModelName?: string;
   /** provider option index picked based on weight in loadbalance mode */
   index?: number;
   cache?: CacheSettings | string;
@@ -125,8 +175,25 @@ export interface ContentType {
   text?: string;
   image_url?: {
     url: string;
+    detail?: string;
   };
 }
+
+export interface ToolCall {
+  id: string;
+  type: string;
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+export type OpenAIMessageRole =
+  | 'system'
+  | 'user'
+  | 'assistant'
+  | 'function'
+  | 'tool';
 
 /**
  * A message in the conversation.
@@ -134,7 +201,7 @@ export interface ContentType {
  */
 export interface Message {
   /** The role of the message sender. It can be 'system', 'user', 'assistant', or 'function'. */
-  role: 'system' | 'user' | 'assistant' | 'function';
+  role: OpenAIMessageRole;
   /** The content of the message. */
   content?: string | ContentType[];
   /** The name of the function to call, if any. */
@@ -142,7 +209,12 @@ export interface Message {
   /** The function call to make, if any. */
   function_call?: any;
   tool_calls?: any;
+  tool_call_id?: string;
   citationMetadata?: CitationMetadata;
+}
+
+export interface AnthropicPromptCache {
+  cache_control?: { type: 'ephemeral' };
 }
 
 export interface CitationMetadata {
@@ -178,11 +250,23 @@ export interface Function {
   parameters?: JsonSchema;
 }
 
+export interface ToolChoiceObject {
+  type: string;
+  function: {
+    name: string;
+  };
+}
+
+export type ToolChoice = ToolChoiceObject | 'none' | 'auto' | 'required';
+
 /**
  * A tool in the conversation.
+ *
+ * `cache_control` is extended to support for prompt-cache
+ *
  * @interface
  */
-export interface Tool {
+export interface Tool extends AnthropicPromptCache {
   /** The name of the function. */
   type: string;
   /** A description of the function. */
@@ -216,6 +300,7 @@ export interface Params {
   examples?: Examples[];
   top_k?: number;
   tools?: Tool[];
+  tool_choice?: ToolChoice;
   response_format?: { type: 'json_object' | 'text' };
   // Google Vertex AI specific
   safety_settings?: any;
@@ -254,6 +339,11 @@ export interface ShortConfig {
   deploymentId?: string;
   workersAiAccountId?: string;
   apiVersion?: string;
+  azureAuthMode?: string;
+  azureEntraClientId?: string;
+  azureEntraClientSecret?: string;
+  azureEntraTenantId?: string;
+  azureModelName?: string;
   customHost?: string;
   // Google Vertex AI specific
   vertexRegion?: string;

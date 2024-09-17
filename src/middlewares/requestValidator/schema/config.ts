@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { OLLAMA, VALID_PROVIDERS, GOOGLE_VERTEX_AI } from '../../../globals';
+import {
+  AZURE_OPEN_AI,
+  OLLAMA,
+  VALID_PROVIDERS,
+  GOOGLE_VERTEX_AI,
+  TRITON,
+} from '../../../globals';
 
 export const configSchema: any = z
   .object({
@@ -8,13 +14,25 @@ export const configSchema: any = z
         mode: z
           .string()
           .refine(
-            (value) => ['single', 'loadbalance', 'fallback'].includes(value),
+            (value) =>
+              ['single', 'loadbalance', 'fallback', 'conditional'].includes(
+                value
+              ),
             {
               message:
-                "Invalid 'mode' value. Must be one of: single, loadbalance, fallback",
+                "Invalid 'mode' value. Must be one of: single, loadbalance, fallback, conditional",
             }
           ),
         on_status_codes: z.array(z.number()).optional(),
+        conditions: z
+          .array(
+            z.object({
+              query: z.object({}),
+              then: z.string(),
+            })
+          )
+          .optional(),
+        default: z.string().optional(),
       })
       .optional(),
     provider: z
@@ -62,9 +80,22 @@ export const configSchema: any = z
     // Google Vertex AI specific
     vertex_project_id: z.string().optional(),
     vertex_region: z.string().optional(),
+    after_request_hooks: z.any().optional(),
+    before_request_hooks: z.any().optional(),
+    vertex_service_account_json: z.object({}).catchall(z.string()).optional(),
     // OpenAI specific
     openai_project: z.string().optional(),
     openai_organization: z.string().optional(),
+    // Azure specific
+    azure_auth_mode: z.string().optional(),
+    azure_entra_client_id: z.string().optional(),
+    azure_entra_client_secret: z.string().optional(),
+    azure_entra_tenant_id: z.string().optional(),
+    deployment_id: z.string().optional(),
+    api_version: z.string().optional(),
+    azure_ad_token: z.string().optional(),
+    azure_model_name: z.string().optional(),
+    strict_open_ai_compliance: z.boolean().optional(),
   })
   .refine(
     (value) => {
@@ -73,12 +104,16 @@ export const configSchema: any = z
       const hasModeTargets =
         value.strategy !== undefined && value.targets !== undefined;
       const isOllamaProvider = value.provider === OLLAMA;
+      const isTritonProvider = value.provider === TRITON;
       const isVertexAIProvider =
         value.provider === GOOGLE_VERTEX_AI &&
-        value.vertex_project_id &&
-        value.vertex_region;
+        value.vertex_region &&
+        (value.vertex_service_account_json || value.vertex_project_id);
       const hasAWSDetails =
         value.aws_access_key_id && value.aws_secret_access_key;
+      const isAzureProvider =
+        value.provider === AZURE_OPEN_AI &&
+        (value.api_key || value.azure_ad_token);
 
       return (
         hasProviderApiKey ||
@@ -87,8 +122,12 @@ export const configSchema: any = z
         value.retry ||
         value.request_timeout ||
         isOllamaProvider ||
+        isTritonProvider ||
         hasAWSDetails ||
-        isVertexAIProvider
+        isVertexAIProvider ||
+        isAzureProvider ||
+        value.after_request_hooks ||
+        value.before_request_hooks
       );
     },
     {
@@ -113,10 +152,11 @@ export const configSchema: any = z
     (value) => {
       const isGoogleVertexAIProvider = value.provider === GOOGLE_VERTEX_AI;
       const hasGoogleVertexAIFields =
-        value.vertex_project_id && value.vertex_region;
+        (value.vertex_project_id && value.vertex_region) ||
+        (value.vertex_region && value.vertex_service_account_json);
       return !(isGoogleVertexAIProvider && !hasGoogleVertexAIFields);
     },
     {
-      message: `Invalid configuration. 'vertex_project_id' and 'vertex_region' are required for '${GOOGLE_VERTEX_AI}' provider. Example: { 'provider': 'vertex-ai', 'vertex_project_id': 'my-project-id', 'vertex_region': 'us-central1', api_key: 'ya29...' }`,
+      message: `Invalid configuration. ('vertex_project_id' and 'vertex_region') or ('vertex_service_account_json' and 'vertex_region') are required for '${GOOGLE_VERTEX_AI}' provider. Example: { 'provider': 'vertex-ai', 'vertex_project_id': 'my-project-id', 'vertex_region': 'us-central1', api_key: 'ya29...' }`,
     }
   );

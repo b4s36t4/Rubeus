@@ -1,4 +1,4 @@
-import { Context, HonoRequest } from 'hono';
+import { Context } from 'hono';
 import { retryRequest } from './retryHandler';
 import Providers from '../providers';
 import {
@@ -7,11 +7,12 @@ import {
   HEADER_KEYS,
   RETRY_STATUS_CODES,
   POWERED_BY,
-  RESPONSE_HEADER_KEYS,
   AZURE_OPEN_AI,
 } from '../globals';
-import { responseHandler, updateResponseHeaders } from './handlerUtils';
+import { updateResponseHeaders } from './handlerUtils';
 import { env } from 'hono/adapter';
+import { logger } from '../apm';
+import { responseHandler } from './responseHandlers';
 // Find the proxy provider
 function proxyProvider(proxyModeHeader: string, providerHeader: string) {
   const proxyProvider = proxyModeHeader?.split(' ')[1] ?? providerHeader;
@@ -24,7 +25,7 @@ function getProxyPath(
   proxyEndpointPath: string,
   customHost: string
 ) {
-  let reqURL = new URL(requestURL);
+  const reqURL = new URL(requestURL);
   let reqPath = reqURL.pathname;
   const reqQuery = reqURL.search;
   reqPath = reqPath.replace(proxyEndpointPath, '');
@@ -53,7 +54,7 @@ function headersToSend(
   headersObj: Record<string, string>,
   customHeadersToIgnore: Array<string>
 ): Record<string, string> {
-  let final: Record<string, string> = {};
+  const final: Record<string, string> = {};
   const poweredByHeadersPattern = `x-${POWERED_BY}-`;
   const headersToAvoid = [...customHeadersToIgnore];
   headersToAvoid.push('content-length');
@@ -85,24 +86,24 @@ export async function proxyGetHandler(c: Context): Promise<Response> {
 
     const customHost = requestHeaders[HEADER_KEYS.CUSTOM_HOST] || '';
 
-    let urlToFetch = getProxyPath(
+    const urlToFetch = getProxyPath(
       c.req.url,
       store.proxyProvider,
       store.proxyPath,
       customHost
     );
 
-    let fetchOptions = {
+    const fetchOptions = {
       headers: headersToSend(requestHeaders, store.customHeadersToAvoid),
       method: c.req.method,
     };
 
-    let retryCount = Math.min(
+    const retryCount = Math.min(
       parseInt(requestHeaders[HEADER_KEYS.RETRIES]) || 1,
       MAX_RETRIES
     );
 
-    let [lastResponse, lastAttempt] = await retryRequest(
+    const [lastResponse, lastAttempt] = await retryRequest(
       urlToFetch,
       fetchOptions,
       retryCount,
@@ -110,14 +111,15 @@ export async function proxyGetHandler(c: Context): Promise<Response> {
       null
     );
 
-    const mappedResponse = await responseHandler(
+    const { response: mappedResponse } = await responseHandler(
       lastResponse,
       store.isStreamingMode,
       store.proxyProvider,
       undefined,
       urlToFetch,
       false,
-      store.reqBody
+      store.reqBody,
+      false
     );
     updateResponseHeaders(
       mappedResponse,
@@ -145,7 +147,9 @@ export async function proxyGetHandler(c: Context): Promise<Response> {
 
     return mappedResponse;
   } catch (err: any) {
-    console.log('proxyGet error', err.message);
+    logger.error({
+      message: `proxyGet error: ${err.message}`,
+    });
     return new Response(
       JSON.stringify({
         status: 'failure',

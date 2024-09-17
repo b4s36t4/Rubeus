@@ -1,3 +1,5 @@
+import { logger } from '../apm';
+import { RouterError } from '../errors/RouterError';
 import {
   constructConfigFromRequestHeaders,
   tryTargetsRecursively,
@@ -14,8 +16,10 @@ import { Context } from 'hono';
  */
 export async function embeddingsHandler(c: Context): Promise<Response> {
   try {
-    let request = await c.req.json();
-    let requestHeaders = Object.fromEntries(c.req.raw.headers);
+    const embReq = c.get('embeddingsRequest');
+    const request = embReq ? await embReq?.json() : await c.req.json();
+    const headers = embReq ? embReq.headers : c.req.raw.headers;
+    const requestHeaders = Object.fromEntries(headers);
     const camelCaseConfig = constructConfigFromRequestHeaders(requestHeaders);
 
     const tryTargetsResponse = await tryTargetsRecursively(
@@ -30,14 +34,25 @@ export async function embeddingsHandler(c: Context): Promise<Response> {
 
     return tryTargetsResponse;
   } catch (err: any) {
-    console.log('completion error', err.message);
+    logger.error({
+      message: `completion error: ${err.message}`,
+    });
+
+    let statusCode = 500;
+    let errorMessage = 'Something went wrong';
+
+    if (err instanceof RouterError) {
+      statusCode = 400;
+      errorMessage = err.message;
+    }
+
     return new Response(
       JSON.stringify({
         status: 'failure',
-        message: 'Something went wrong',
+        message: errorMessage,
       }),
       {
-        status: 500,
+        status: statusCode,
         headers: {
           'content-type': 'application/json',
         },

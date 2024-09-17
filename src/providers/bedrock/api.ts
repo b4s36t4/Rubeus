@@ -1,6 +1,5 @@
-import { Options } from '../../types/requestBody';
 import { ProviderAPIConfig } from '../types';
-import { generateAWSHeaders } from './utils';
+import { generateAWSHeaders, getAssumedRoleCredentials } from './utils';
 
 const BedrockAPIConfig: ProviderAPIConfig = {
   getBaseURL: ({ providerOptions }) =>
@@ -13,6 +12,17 @@ const BedrockAPIConfig: ProviderAPIConfig = {
     const headers = {
       'content-type': 'application/json',
     };
+    if (providerOptions.awsAuthType === 'assumedRole') {
+      const { accessKeyId, secretAccessKey, sessionToken } =
+        (await getAssumedRoleCredentials(
+          providerOptions.awsRoleArn || '',
+          providerOptions.awsExternalId || '',
+          providerOptions.awsRegion || ''
+        )) || {};
+      providerOptions.awsAccessKeyId = accessKeyId;
+      providerOptions.awsSecretAccessKey = secretAccessKey;
+      providerOptions.awsSessionToken = sessionToken;
+    }
 
     return generateAWSHeaders(
       transformedRequestBody,
